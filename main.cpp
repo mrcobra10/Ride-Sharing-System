@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <ctring>
 using namespace std;
 
 struct Place;
