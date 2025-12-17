@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include "roads.h"
+#include "ride.h"
 using namespace std;
 
 
@@ -18,27 +19,7 @@ struct User
 	User *left; // BST
 	User *right;
 };
-struct RideOffer
-{
-	int offerId;
-	int driverId;
-	Place *startPlace;
-	Place *endPlace;
-	int departTime;
-	int capacity;
-	int seatsLeft;
-	RideOffer *next;
-};
-struct RideRequest
-{
-	int requestId;
-	int passengerId;
-	Place *fromPlace;
-	Place *toPlace;
-	int earliest;
-	int latest;
-	RideRequest *next;
-};
+
 
 
 
@@ -49,12 +30,7 @@ RideRequest *requestHead = nullptr;
 User *CreateUser(int userId,
 				 const char *name,
 				 int isDriver);
-RideOffer *CreateRideOffer(int offerId, int driverId,
-						   const char *start, const char *end,
-						   int departTime, int capacity);
-RideRequest *CreateRideRequest(int requestId, int passengerId,
-							   const char *from, const char *to,
-							   int earliest, int latest);
+
 int MatchNextRequest();
 void PrintUserHistory(int userId);
 void PrintTopDrivers(int k);
@@ -68,6 +44,57 @@ int main()
 	loadRoadNetworkFromFile(roadLinksFile);
 
 	printGraph();
+
+	cout << "===== TEST START =====";
+
+
+// Build road graph
+AddRoad("A", "B", 5);
+AddRoad("A", "C", 10);
+AddRoad("B", "C", 3);
+AddRoad("C", "D", 4);
+AddRoad("B", "D", 8);
+
+
+// Create ride offers
+CreateRideOffer(1, 101, "A", "D", 10, 2);
+CreateRideOffer(2, 102, "A", "C", 12, 1);
+
+
+cout << "--- Offers After Creation ---";
+PrintOffers();
+
+
+// Create ride requests
+CreateRideRequest(1, 201, "A", "D", 9, 11);
+CreateRideRequest(2, 202, "A", "D", 10, 12);
+CreateRideRequest(3, 203, "A", "C", 11, 13);
+
+
+cout << "--- Requests After Creation ---";
+PrintRequests();
+
+
+// Test matching
+cout << "--- Matching Requests ---";
+cout << "Match 1: " << MatchNextRequest() << endl; // expect 1
+cout << "Match 2: " << MatchNextRequest() << endl; // expect 1
+cout << "Match 3: " << MatchNextRequest() << endl; // expect 1
+cout << "Match 4: " << MatchNextRequest() << endl; // expect 0
+
+
+cout << "--- Offers After Matching ---";
+PrintOffers();
+
+
+// Test reachable areas (Dijkstra)
+cout << "-- Reachable Areas Test ---";
+PrintReachableWithinCost(offerHead, 15);
+
+
+cout << "===== TEST END =====";
+
+
 
 	return 0;
 }
