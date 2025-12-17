@@ -6,6 +6,7 @@
 #include <sstream>
 #include "roads.h"
 #include "ride.h"
+#include "user.h"
 using namespace std;
 
 
