@@ -1,12 +1,13 @@
 #ifndef RIDE_H
 #define RIDE_H
 
+
+#include "roads.h"
 #include <iostream>
 #include <climits>
 
 // Forward declarations
-struct Place;
-struct RoadLink;
+
 
 // =======================
 // RIDE OFFER
@@ -75,7 +76,7 @@ void PrintRequests();
 // GRAPH / PLACE INTERFACE
 // (implemented in roads.cpp)
 // =======================
-Place* GetOrCreatePlace(const char* name);
+
 
 // =======================
 // STEP 1.4 – DIJKSTRA

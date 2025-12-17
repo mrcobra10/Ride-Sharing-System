@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include "user.h"
-#include <ctring>
+//#include <ctring>
 
 using namespace std;
 
@@ -137,11 +137,4 @@ void PrintUserHistory(int userId)
 
     PrintHistoryBST(u->history);
 }
-
-
-
-
-
-
-void PrintTopDrivers(int k);
 
