@@ -78,18 +78,4 @@ void printGraph()
     }
 }
 
-void loadRoadNetworkFromFile(fstream &roadFile)
-{
-    string line;
-
-    while (getline(roadFile, line))
-    {
-        stringstream ss(line);
-        char from_place[100];
-        char to_place[100];
-        int cost;
-
-        ss >> from_place >> to_place >> cost;
-        AddRoad(from_place, to_place, cost);
-    }
-}
+// loadRoadNetworkFromFile moved to storage.cpp (Phase 10 — File Storage)

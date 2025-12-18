@@ -65,6 +65,14 @@ extern RideRequest* requestHead;
 extern int requestCount;
 
 // =======================
+// STORAGE HOOKS (Phase 10)
+// =======================
+int ActiveRideTableSize();
+ActiveRide* ActiveRideBucketHead(int idx);
+void ClearActiveRides();
+void StorageInsertActiveRide(int rideId, int offerId, const int* passengerIds, int passengerCount);
+
+// =======================
 // CORE FUNCTIONS
 // =======================
 RideOffer* CreateRideOffer(

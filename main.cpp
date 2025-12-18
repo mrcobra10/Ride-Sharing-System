@@ -1,102 +1,226 @@
-// Ride Sharing Project
-// Usman Joined
+// Ride Sharing System — Demo CLI (Phase 10 compatible)
 
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <limits>
+#include <string>
+
 #include "roads.h"
 #include "ride.h"
 #include "user.h"
+#include "storage.h"
+
 using namespace std;
 
-
+// --------- GLOBALS (declared extern in headers) ----------
 Place *placeHead = nullptr;
-struct User
-{
-	int userId;
-	char *name;
-	int isDriver; // 1=driver,0=passenger
-	int rating;
-	User *left; // BST
-	User *right;
-};
-
-
-
-
 User *userRoot = nullptr;
 RideOffer *offerHead = nullptr;
 RideRequest *requestHead = nullptr;
 int requestCount = 0;
 
-User *CreateUser(int userId,
-				 const char *name,
-				 int isDriver);
+static void ClearCinLine()
+{
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
 
-int MatchNextRequest();
-void PrintUserHistory(int userId);
-void PrintTopDrivers(int k);
+static int ReadInt(const char *prompt)
+{
+    while (true)
+    {
+        cout << prompt;
+        int x;
+        if (cin >> x)
+            return x;
+        ClearCinLine();
+        cout << "Invalid number, try again.\n";
+    }
+}
+
+static string ReadToken(const char *prompt)
+{
+    cout << prompt;
+    string s;
+    cin >> s;
+    return s;
+}
+
+static void ResetInMemoryState()
+{
+    // NOTE: This intentionally does not free all allocated memory (demo program).
+    // It resets heads/counters so LoadAll() rebuilds cleanly.
+    placeHead = nullptr;
+    userRoot = nullptr;
+    offerHead = nullptr;
+    requestHead = nullptr;
+    requestCount = 0;
+    ClearActiveRides();
+}
+
+static void Menu()
+{
+    cout << "\n============================\n";
+    cout << " Ride Sharing System (Demo)\n";
+    cout << "============================\n";
+    cout << "1) Load road network from roads.txt\n";
+    cout << "2) Add road (from, to, cost)\n";
+    cout << "3) Print road graph\n";
+    cout << "4) Create user (driver/passenger)\n";
+    cout << "5) Print all users (BST inorder)\n";
+    cout << "6) Create ride offer\n";
+    cout << "7) Print ride offers\n";
+    cout << "8) Create ride request\n";
+    cout << "9) Print ride requests\n";
+    cout << "10) Match next request (creates active ride + history)\n";
+    cout << "11) Print user ride history\n";
+    cout << "12) Reachable areas within cost (from an offer)\n";
+    cout << "13) SAVE ALL (Phase 10)\n";
+    cout << "14) LOAD ALL (Phase 10)\n";
+    cout << "15) Reset in-memory state (for testing load)\n";
+    cout << "0) Exit\n";
+}
 
 int main()
 {
-	cout << "Hello world" << endl;
+    cout << "Ride Sharing System — interactive demo\n";
+    cout << "Tip: Create users first (drivers + passengers), then roads, then offers/requests.\n";
 
-	fstream roadLinksFile;
-	roadLinksFile.open("roads.txt");
-	loadRoadNetworkFromFile(roadLinksFile);
+    while (true)
+    {
+        Menu();
+        int choice = ReadInt("Select: ");
 
-	printGraph();
+        if (choice == 0)
+        {
+            cout << "Goodbye.\n";
+            break;
+        }
 
-	cout << "===== TEST START =====";
+        switch (choice)
+        {
+        case 1:
+        {
+            fstream f("roads.txt");
+            if (!f.is_open())
+            {
+                cout << "Failed to open roads.txt\n";
+                break;
+            }
+            loadRoadNetworkFromFile(f);
+            cout << "Loaded road network from roads.txt\n";
+            break;
+        }
+        case 2:
+        {
+            string from = ReadToken("From: ");
+            string to = ReadToken("To: ");
+            int cost = ReadInt("Cost: ");
+            AddRoad(from.c_str(), to.c_str(), cost);
+            cout << "Road added.\n";
+            break;
+        }
+        case 3:
+            printGraph();
+            break;
+        case 4:
+        {
+            int id = ReadInt("User ID (int): ");
+            string name = ReadToken("Name (no spaces): ");
+            int isDriver = ReadInt("Driver? (1=yes, 0=no): ");
+            userRoot = CreateUser(userRoot, id, name.c_str(), isDriver);
+            cout << "User created.\n";
+            break;
+        }
+        case 5:
+            PrintAllUsers(userRoot);
+            break;
+        case 6:
+        {
+            int offerId = ReadInt("Offer ID: ");
+            int driverId = ReadInt("Driver ID: ");
+            string start = ReadToken("Start place: ");
+            string end = ReadToken("End place: ");
+            int depart = ReadInt("Depart time (int): ");
+            int cap = ReadInt("Capacity: ");
+            RideOffer *o = CreateRideOffer(offerId, driverId, start.c_str(), end.c_str(), depart, cap);
+            if (!o)
+                cout << "Offer creation failed.\n";
+            else
+                cout << "Offer created.\n";
+            break;
+        }
+        case 7:
+            PrintOffers();
+            break;
+        case 8:
+        {
+            int requestId = ReadInt("Request ID: ");
+            int passengerId = ReadInt("Passenger ID: ");
+            string from = ReadToken("From place: ");
+            string to = ReadToken("To place: ");
+            int earliest = ReadInt("Earliest depart time: ");
+            int latest = ReadInt("Latest depart time: ");
+            RideRequest *r = CreateRideRequest(requestId, passengerId, from.c_str(), to.c_str(), earliest, latest);
+            if (!r)
+                cout << "Request creation failed (passenger missing or invalid).\n";
+            else
+                cout << "Request created.\n";
+            break;
+        }
+        case 9:
+            PrintRequests();
+            break;
+        case 10:
+        {
+            int matched = MatchNextRequest();
+            cout << (matched ? "Matched!\n" : "No match.\n");
+            break;
+        }
+        case 11:
+        {
+            int userId = ReadInt("User ID: ");
+            PrintUserHistory(userId);
+            break;
+        }
+        case 12:
+        {
+            int offerId = ReadInt("Offer ID to use as start point: ");
+            int bound = ReadInt("Cost bound: ");
+            RideOffer *o = offerHead;
+            while (o && o->offerId != offerId)
+                o = o->next;
+            if (!o)
+            {
+                cout << "Offer not found.\n";
+                break;
+            }
+            PrintReachableWithinCost(o, bound);
+            break;
+        }
+        case 13:
+        {
+            bool ok = SaveAll(".");
+            cout << (ok ? "Saved: users.dat, roads.dat, offers.dat, active_rides.dat, history.dat\n"
+                        : "Save failed.\n");
+            break;
+        }
+        case 14:
+        {
+            ResetInMemoryState();
+            bool ok = LoadAll(".");
+            cout << (ok ? "Loaded all data from .dat files.\n" : "Load failed.\n");
+            break;
+        }
+        case 15:
+            ResetInMemoryState();
+            cout << "State reset.\n";
+            break;
+        default:
+            cout << "Unknown option.\n";
+            break;
+        }
+    }
 
-
-// Build road graph
-AddRoad("A", "B", 5);
-AddRoad("A", "C", 10);
-AddRoad("B", "C", 3);
-AddRoad("C", "D", 4);
-AddRoad("B", "D", 8);
-
-
-// Create ride offers
-CreateRideOffer(1, 101, "A", "D", 10, 2);
-CreateRideOffer(2, 102, "A", "C", 12, 1);
-
-
-cout << "--- Offers After Creation ---";
-PrintOffers();
-
-
-// Create ride requests
-CreateRideRequest(1, 201, "A", "D", 9, 11);
-CreateRideRequest(2, 202, "A", "D", 10, 12);
-CreateRideRequest(3, 203, "A", "C", 11, 13);
-
-
-cout << "--- Requests After Creation ---";
-PrintRequests();
-
-
-// Test matching
-cout << "--- Matching Requests ---";
-cout << "Match 1: " << MatchNextRequest() << endl; // expect 1
-cout << "Match 2: " << MatchNextRequest() << endl; // expect 1
-cout << "Match 3: " << MatchNextRequest() << endl; // expect 1
-cout << "Match 4: " << MatchNextRequest() << endl; // expect 0
-
-
-cout << "--- Offers After Matching ---";
-PrintOffers();
-
-
-// Test reachable areas (Dijkstra)
-cout << "-- Reachable Areas Test ---";
-PrintReachableWithinCost(offerHead, 15);
-
-
-cout << "===== TEST END =====";
-
-
-
-	return 0;
+    return 0;
 }

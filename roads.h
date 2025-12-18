@@ -33,6 +33,5 @@ RoadLink* appendNodetoRoadList(RoadLink* head, RoadLink* new_node);
 Place* GetOrCreatePlace(const char *name);
 void AddRoad(const char *from, const char *to, int cost);
 void printGraph();
-void loadRoadNetworkFromFile(fstream &roadFile);
 
 #endif

@@ -18,6 +18,7 @@ User* CreateUser(User* root, int userId, const char *name, int isDriver) {
         strcpy(newUser->name, name);
         newUser->isDriver = isDriver;
         newUser->rating = 5; // default rating
+        newUser->history = nullptr;
         newUser->left = newUser->right = nullptr;
         return newUser;
     }

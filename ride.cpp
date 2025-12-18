@@ -11,7 +11,81 @@ using namespace std;
 RideRequest *requestHeap[MAX_REQUESTS];
 ActiveRide *activeRideTable[ACTIVE_RIDE_TABLE_SIZE] = {nullptr};
 
-int HashRideId(int rideId)
+static int HashRideId(int rideId);
+
+int ActiveRideTableSize()
+{
+    return ACTIVE_RIDE_TABLE_SIZE;
+}
+
+ActiveRide* ActiveRideBucketHead(int idx)
+{
+    if (idx < 0 || idx >= ACTIVE_RIDE_TABLE_SIZE) return nullptr;
+    return activeRideTable[idx];
+}
+
+static void FreePassengerList(PassengerNode* p)
+{
+    while (p)
+    {
+        PassengerNode* nxt = p->next;
+        delete p;
+        p = nxt;
+    }
+}
+
+void ClearActiveRides()
+{
+    for (int i = 0; i < ACTIVE_RIDE_TABLE_SIZE; i++)
+    {
+        ActiveRide* cur = activeRideTable[i];
+        while (cur)
+        {
+            ActiveRide* nxt = cur->next;
+            FreePassengerList(cur->passengers);
+            delete cur;
+            cur = nxt;
+        }
+        activeRideTable[i] = nullptr;
+    }
+}
+
+static RideOffer* FindOfferById(int offerId)
+{
+    RideOffer* o = offerHead;
+    while (o)
+    {
+        if (o->offerId == offerId) return o;
+        o = o->next;
+    }
+    return nullptr;
+}
+
+void StorageInsertActiveRide(int rideId, int offerId, const int* passengerIds, int passengerCount)
+{
+    RideOffer* offer = FindOfferById(offerId);
+    if (!offer) return;
+
+    int idx = HashRideId(rideId);
+
+    ActiveRide* ar = new ActiveRide;
+    ar->rideId = rideId;
+    ar->offer = offer;
+    ar->passengers = nullptr;
+
+    for (int i = passengerCount - 1; i >= 0; i--)
+    {
+        PassengerNode* p = new PassengerNode;
+        p->passengerId = passengerIds[i];
+        p->next = ar->passengers;
+        ar->passengers = p;
+    }
+
+    ar->next = activeRideTable[idx];
+    activeRideTable[idx] = ar;
+}
+
+static int HashRideId(int rideId)
 {
     return rideId % ACTIVE_RIDE_TABLE_SIZE;
 }
@@ -150,6 +224,23 @@ void PrintOffers()
              << " SeatsLeft: " << o->seatsLeft
              << " Depart: " << o->departTime << endl;
         o = o->next;
+    }
+}
+
+void PrintRequests()
+{
+    cout << "Ride Requests (heap order):\n";
+    for (int i = 0; i < requestCount; i++)
+    {
+        RideRequest* r = requestHeap[i];
+        if (!r) continue;
+        cout << "RequestID: " << r->requestId
+             << " Passenger: " << r->passengerId
+             << " From: " << (r->fromPlace ? r->fromPlace->name : "NULL")
+             << " To: " << (r->toPlace ? r->toPlace->name : "NULL")
+             << " Earliest: " << r->earliest
+             << " Latest: " << r->latest
+             << '\n';
     }
 }
 
