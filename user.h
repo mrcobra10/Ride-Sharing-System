@@ -41,5 +41,7 @@ void PrintHistoryBST(HistoryNode* root);
 
 void PrintUserHistory(int userId);
 
+bool PassengerExists(int passengerId);
+
 
 #endif

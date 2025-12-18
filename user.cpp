@@ -138,3 +138,15 @@ void PrintUserHistory(int userId)
     PrintHistoryBST(u->history);
 }
 
+bool PassengerExists(int passengerId)
+{
+    User* u = SearchUser(userRoot, passengerId);
+
+    if (u == nullptr)
+        return false;
+
+    // passenger = isDriver == 0
+    return (u->isDriver == 0);
+}
+
+

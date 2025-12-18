@@ -27,6 +27,7 @@ struct User
 User *userRoot = nullptr;
 RideOffer *offerHead = nullptr;
 RideRequest *requestHead = nullptr;
+int requestCount = 0;
 
 User *CreateUser(int userId,
 				 const char *name,

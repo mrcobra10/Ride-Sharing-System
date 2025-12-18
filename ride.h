@@ -3,6 +3,7 @@
 
 
 #include "roads.h"
+#include "user.h"
 #include <iostream>
 #include <climits>
 
@@ -26,15 +27,19 @@ struct RideOffer {
 // =======================
 // RIDE REQUEST
 // =======================
-struct RideRequest {
+struct RideRequest
+{
     int requestId;
     int passengerId;
-    Place* fromPlace;
-    Place* toPlace;
+    Place *fromPlace;
+    Place *toPlace;
     int earliest;
     int latest;
-    RideRequest* next;
+
+    // heap support
+    int heapIndex;
 };
+
 
 // =======================
 // GLOBAL LIST HEADS
@@ -42,6 +47,7 @@ struct RideRequest {
 // =======================
 extern RideOffer*   offerHead;
 extern RideRequest* requestHead;
+extern int requestCount;
 
 // =======================
 // CORE FUNCTIONS
@@ -82,5 +88,19 @@ void PrintRequests();
 // STEP 1.4 – DIJKSTRA
 // =======================
 void PrintReachableWithinCost(RideOffer* offer, int costBound);
+
+int MatchNextRequest();
+RideRequest* ExtractMinRequest();
+bool IsSubPath(
+    Place* driverPath[], int dLen,
+    Place* passengerPath[], int pLen
+);
+bool ComputeShortestPath(
+    Place* start,
+    Place* end,
+    Place* path[],
+    int& pathLen
+);
+
 
 #endif // RIDE_H

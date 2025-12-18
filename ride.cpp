@@ -8,6 +8,10 @@
 #include <cstring>
 using namespace std;
 
+#define MAX_REQUESTS 1000
+
+RideRequest *requestHeap[MAX_REQUESTS];
+
 // Forward declaration
 
 
@@ -63,29 +67,79 @@ RideOffer* CreateRideOffer(int offerId, int driverId,
     return o;
 }
 
-// ---------------- CREATE RIDE REQUEST ----------------
+void swapRequests(int i, int j)
+{
+    RideRequest *temp = requestHeap[i];
+    requestHeap[i] = requestHeap[j];
+    requestHeap[j] = temp;
+
+    requestHeap[i]->heapIndex = i;
+    requestHeap[j]->heapIndex = j;
+}
+
+void heapifyUp(int index)
+{
+    while (index > 0)
+    {
+        int parent = (index - 1) / 2;
+
+        if (requestHeap[parent]->earliest <= requestHeap[index]->earliest)
+            break;
+
+        swapRequests(parent, index);
+        index = parent;
+    }
+}
+
+
 RideRequest* CreateRideRequest(int requestId, int passengerId,
                                const char *from, const char *to,
                                int earliest, int latest)
 {
+    // Step 4.3.1 — Validate passenger
+    if (!PassengerExists(passengerId))
+    {
+        cout << "Error: Passenger does not exist.\n";
+        return NULL;
+    }
+
+    // Step 4.3.2 — Convert place names to Place*
+    Place *fromPlace = GetOrCreatePlace(from);
+    Place *toPlace   = GetOrCreatePlace(to);
+
+    // Step 4.3.3 — Create request object
     RideRequest *r = new RideRequest;
-
-    r->requestId  = requestId;
+    r->requestId   = requestId;
     r->passengerId = passengerId;
-    r->fromPlace  = GetOrCreatePlace(from);
-    r->toPlace    = GetOrCreatePlace(to);
-    r->earliest   = earliest;
-    r->latest     = latest;
+    r->fromPlace   = fromPlace;
+    r->toPlace     = toPlace;
+    r->earliest    = earliest;
+    r->latest      = latest;
 
-    // Insert at head of linked list
-    r->next = requestHead;
-    requestHead = r;
+    // Step 4.2 — Insert into min-heap (priority queue)
+    if (requestCount >= MAX_REQUESTS)
+    {
+        cout << "Error: Request heap full.\n";
+        delete r;
+        return NULL;
+    }
+
+    int index = requestCount;
+    requestHeap[index] = r;
+    r->heapIndex = index;
+    requestCount++;
+
+    heapifyUp(index);
+
+    // requestHead always points to heap root
+    requestHead = requestHeap[0];
 
     return r;
 }
 
+
 // ---------------- MATCH NEXT REQUEST ----------------
-int MatchNextRequest()
+/*int MatchNextRequest()
 {
     if (requestHead == nullptr || offerHead == nullptr)
         return 0;
@@ -114,7 +168,7 @@ int MatchNextRequest()
     }
 
     return 0; // no match
-}
+}*/
 
 // ---------------- PRINT OFFERS (DEBUG) ----------------
 void PrintOffers()
@@ -132,7 +186,7 @@ void PrintOffers()
 }
 
 // ---------------- PRINT REQUESTS (DEBUG) ----------------
-void PrintRequests()
+/*void PrintRequests()
 {
     RideRequest *r = requestHead;
     cout << "Ride Requests:\n";
@@ -144,7 +198,7 @@ void PrintRequests()
              << ", " << r->latest << "]" << endl;
         r = r->next;
     }
-}
+}*/
 
 /*
 ---------------- TEST EXAMPLE ----------------
@@ -274,6 +328,202 @@ void PrintReachableWithinCost(RideOffer* offer, int costBound)
         }
     }
 }
+
+bool ComputeShortestPath(
+    Place* start,
+    Place* end,
+    Place* path[],
+    int& pathLen
+)
+{
+    Place* places[100];
+    int dist[100];
+    Place* parent[100];
+    int count = 0;
+
+    auto getIndex = [&](Place* p) {
+        for (int i = 0; i < count; i++)
+            if (places[i] == p)
+                return i;
+        places[count] = p;
+        dist[count] = INT_MAX;
+        parent[count] = nullptr;
+        return count++;
+    };
+
+    MinPQ pq;
+
+    int s = getIndex(start);
+    dist[s] = 0;
+    pq.push(start, 0);
+
+    while (!pq.empty())
+    {
+        Place* u;
+        int d;
+        pq.pop(u, d);
+
+        int uIdx = getIndex(u);
+        if (u == end) break;
+
+        RoadLink* e = u->firstLink;
+        while (e)
+        {
+            Place* v = e->to;
+            int vIdx = getIndex(v);
+            int nd = d + e->cost;
+
+            if (nd < dist[vIdx])
+            {
+                dist[vIdx] = nd;
+                parent[vIdx] = u;
+                pq.push(v, nd);
+            }
+            e = e->next;
+        }
+    }
+
+    int endIdx = getIndex(end);
+    if (dist[endIdx] == INT_MAX)
+        return false;
+
+    // reconstruct path (reverse)
+    pathLen = 0;
+    Place* cur = end;
+    while (cur)
+    {
+        path[pathLen++] = cur;
+        int i = getIndex(cur);
+        cur = parent[i];
+    }
+
+    // reverse
+    for (int i = 0; i < pathLen / 2; i++)
+        swap(path[i], path[pathLen - 1 - i]);
+
+    return true;
+}
+
+bool IsSubPath(
+    Place* driverPath[], int dLen,
+    Place* passengerPath[], int pLen
+)
+{
+    if (pLen > dLen) return false;
+
+    for (int i = 0; i <= dLen - pLen; i++)
+    {
+        bool match = true;
+        for (int j = 0; j < pLen; j++)
+        {
+            if (driverPath[i + j] != passengerPath[j])
+            {
+                match = false;
+                break;
+            }
+        }
+        if (match) return true;
+    }
+    return false;
+}
+
+RideRequest* ExtractMinRequest()
+{
+    if (requestCount == 0)
+        return nullptr;
+
+    RideRequest* minReq = requestHeap[0];
+
+    requestHeap[0] = requestHeap[--requestCount];
+    if (requestCount > 0)
+    {
+        requestHeap[0]->heapIndex = 0;
+
+        int i = 0;
+        while (true)
+        {
+            int l = 2*i + 1, r = 2*i + 2, s = i;
+            if (l < requestCount &&
+                requestHeap[l]->earliest < requestHeap[s]->earliest)
+                s = l;
+            if (r < requestCount &&
+                requestHeap[r]->earliest < requestHeap[s]->earliest)
+                s = r;
+            if (s == i) break;
+            swapRequests(i, s);
+            i = s;
+        }
+    }
+
+    requestHead = (requestCount > 0) ? requestHeap[0] : nullptr;
+    return minReq;
+}
+
+int MatchNextRequest()
+{
+    RideRequest* req = ExtractMinRequest();
+    if (!req) return 0;
+
+    RideOffer* off = offerHead;
+
+    while (off)
+    {
+        if (off->seatsLeft > 0 &&
+            off->departTime >= req->earliest &&
+            off->departTime <= req->latest)
+        {
+            Place* driverPath[100];
+            Place* passengerPath[100];
+            int dLen, pLen;
+
+            bool dOK = ComputeShortestPath(
+                off->startPlace,
+                off->endPlace,
+                driverPath, dLen
+            );
+
+            bool pOK = ComputeShortestPath(
+                req->fromPlace,
+                req->toPlace,
+                passengerPath, pLen
+            );
+
+            if (dOK && pOK &&
+                IsSubPath(driverPath, dLen, passengerPath, pLen))
+            {
+                off->seatsLeft--;
+
+                AddHistory(off->driverId,
+                           off->offerId,
+                           req->fromPlace->name,
+                           req->toPlace->name,
+                           off->departTime);
+
+                AddHistory(req->passengerId,
+                           off->offerId,
+                           req->fromPlace->name,
+                           req->toPlace->name,
+                           off->departTime);
+
+                delete req;
+                return 1;
+            }
+        }
+        off = off->next;
+    }
+
+    // No match → reinsert request
+    CreateRideRequest(req->requestId,
+                      req->passengerId,
+                      req->fromPlace->name,
+                      req->toPlace->name,
+                      req->earliest,
+                      req->latest);
+
+    delete req;
+    return 0;
+}
+
 
 
 // =======================================================
