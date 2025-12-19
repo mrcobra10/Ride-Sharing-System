@@ -438,24 +438,68 @@ bool IsSubPath(
     Place *driverPath[], int dLen,
     Place *passengerPath[], int pLen)
 {
-    if (pLen > dLen)
+    if (pLen == 0 || dLen == 0)
         return false;
-
-    for (int i = 0; i <= dLen - pLen; i++)
+    
+    // Passenger path must have at least start and end
+    if (pLen < 2)
+        return false;
+    
+    Place *passengerStart = passengerPath[0];
+    Place *passengerEnd = passengerPath[pLen - 1];
+    
+    // Find passenger start in driver path
+    int startIdx = -1;
+    for (int i = 0; i < dLen; i++)
     {
-        bool match = true;
-        for (int j = 0; j < pLen; j++)
+        if (driverPath[i] == passengerStart)
         {
-            if (driverPath[i + j] != passengerPath[j])
+            startIdx = i;
+            break;
+        }
+    }
+    
+    if (startIdx == -1)
+        return false; // Passenger start not in driver path
+    
+    // Find passenger end in driver path, must be after start
+    int endIdx = -1;
+    for (int i = startIdx; i < dLen; i++)
+    {
+        if (driverPath[i] == passengerEnd)
+        {
+            endIdx = i;
+            break;
+        }
+    }
+    
+    if (endIdx == -1)
+        return false; // Passenger end not in driver path after start
+    
+    // If passenger path is just start->end, it's valid if both are in driver path in order
+    if (pLen == 2)
+        return true;
+    
+    // For longer passenger paths, check if all intermediate places exist in driver path in order
+    int driverIdx = startIdx;
+    for (int p = 1; p < pLen - 1; p++)
+    {
+        bool found = false;
+        // Look for passengerPath[p] in driver path after current position
+        for (int d = driverIdx + 1; d <= endIdx; d++)
+        {
+            if (driverPath[d] == passengerPath[p])
             {
-                match = false;
+                driverIdx = d;
+                found = true;
                 break;
             }
         }
-        if (match)
-            return true;
+        if (!found)
+            return false; // Intermediate place not found in correct order
     }
-    return false;
+    
+    return true; // All passenger places found in driver path in correct order
 }
 
 RideRequest *ExtractMinRequest()

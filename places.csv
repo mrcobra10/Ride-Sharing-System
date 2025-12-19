@@ -1,0 +1,8 @@
+# placeName,lat,lng
+# Optional: provide real coordinates if you want the graph to resemble a real map.
+# If this file is missing entries, the backend falls back to deterministic demo coords.
+Blue-Area,33.7182,73.0605
+Aabpara,33.7055,73.0509
+Diplomatic-Enclave,33.7266,73.1102
+Daman-e-Koh,33.7471,73.0570
+
