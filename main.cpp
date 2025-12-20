@@ -89,7 +89,7 @@ static void Menu()
     cout << "\n============================\n";
     cout << " Ride Sharing System (Demo)\n";
     cout << "============================\n";
-    cout << "1) Load road network from roads.txt\n";
+    cout << "1) Load road network from roads.dat\n";
     cout << "2) Add road (from, to, cost)\n";
     cout << "3) Print road graph\n";
     cout << "4) Create user (driver/passenger)\n";
@@ -128,14 +128,14 @@ int main()
         {
         case 1:
         {
-            fstream f("roads.txt");
+            fstream f("roads.dat");
             if (!f.is_open())
             {
-                cout << "Failed to open roads.txt\n";
+                cout << "Failed to open roads.dat\n";
                 break;
             }
             loadRoadNetworkFromFile(f);
-            cout << "Loaded road network from roads.txt\n";
+            cout << "Loaded road network from roads.dat\n";
             break;
         }
         case 2:
