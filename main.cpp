@@ -25,6 +25,32 @@ static void ClearCinLine()
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 }
 
+static int ReadTime(const char *prompt)
+{
+
+    cin.ignore();
+    while (true)
+    {
+        cout << prompt;
+        string input;
+        getline(cin, input);
+
+        int hour, minute;
+        char sep;
+
+        // Use stringstream to parse "HH:MM"
+        stringstream ss(input);
+        if (ss >> hour >> sep >> minute && sep == ':' &&
+            hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59)
+        {
+            return hour * 100 + minute;
+        }
+        ClearCinLine();
+
+        cout << "Invalid time. Please enter in HH:MM 24-hour format.\n";
+    }
+}
+
 static int ReadInt(const char *prompt)
 {
     while (true)
@@ -142,7 +168,7 @@ int main()
             int driverId = ReadInt("Driver ID: ");
             string start = ReadToken("Start place: ");
             string end = ReadToken("End place: ");
-            int depart = ReadInt("Depart time (int): ");
+            int depart = ReadTime("Depart time (int): ");
             int cap = ReadInt("Capacity: ");
             RideOffer *o = CreateRideOffer(offerId, driverId, start.c_str(), end.c_str(), depart, cap);
             if (!o)
@@ -158,8 +184,8 @@ int main()
             int passengerId = ReadInt("Passenger ID: ");
             string from = ReadToken("From place: ");
             string to = ReadToken("To place: ");
-            int earliest = ReadInt("Earliest depart time: ");
-            int latest = ReadInt("Latest depart time: ");
+            int earliest = ReadTime("Earliest depart time: ");
+            int latest = ReadTime("Latest depart time: ");
             RideRequest *r = CreateRideRequest(requestId, passengerId, from.c_str(), to.c_str(), earliest, latest);
             if (!r)
                 cout << "Request creation failed (passenger missing or invalid).\n";

@@ -16,6 +16,18 @@ RideRequest *requestHeap[MAX_REQUESTS];
 
 ActiveRide *activeRideTable[ACTIVE_RIDE_TABLE_SIZE] = {nullptr};
 
+
+//Function to output time in 24 hour format made by Umer Faisal
+static void PrintTime(int time) {
+    int hour = time / 100;
+    int minute = time % 100;
+
+    // Print in HH:MM format with leading zeros
+    cout << setw(2) << setfill('0') << hour 
+         << ":" 
+         << setw(2) << setfill('0') << minute;
+}
+
 // ---------------- HASH ----------------
 static int HashRideId(int rideId)
 {
@@ -609,14 +621,22 @@ int MatchNextRequest()
                  << ", Driver ID: " << off->driverId
                  << ", From: " << off->startPlace->name
                  << ", To: " << off->endPlace->name
-                 << ", Departure: " << off->departTime << endl;
+                 << ", Departure: ";
+                  PrintTime(off->departTime);
+                  cout<<endl;
 
             cout << "Ride request: \n";
             cout << "  Request ID: " << req->requestId
                  << ", Passenger ID: " << req->passengerId
                  << ", From: " << req->fromPlace->name
-                 << ", To: " << req->toPlace->name
-                 << ", Departure: " << off->departTime << endl;
+                 << ", To: " << req->toPlace->name;
+                 cout<< ", Departure: ";
+                 PrintTime(off->departTime);
+
+                 cout<<endl;
+                 
+                 
+                
 
             delete req;
             return 1;
